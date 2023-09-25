@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        #scanner-container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #result {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-top: 20px;
+        }
+
+        .button,
+        #html5-qrcode-button-camera-permission,
+        #html5-qrcode-button-camera-start,
+        #html5-qrcode-button-camera-stop,
+        #html5-qrcode-button-file-selection {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        img[alt="Info icon"] {
+            display: none;
+        }
+
+        a {
+            cursor: pointer !important;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .loader {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="scanner-container">
+        <h1>Ticket Scanner</h1>
+        <div id="loading-animation" style="display: none;">
+            <div class="loader"></div>
+            <p>Loading...</p>
+        </div>
+        <div id="reader"></div>
+        <div id="result"></div>
+        <center><button id="reloadButton" class="button" style="display: none;">Reload</button></center>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"
+        integrity="sha512-k/KAe4Yff9EUdYI5/IAHlwUswqeipP+Cp5qnrsUjTPCgl51La2/JhyyjNciztD7mWNKLSXci48m7cctATKfLlQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        let qrSound = new Audio('./qrSound.mp3');
+        const scanner = new Html5QrcodeScanner('reader', {
+            qrbox: {
+                width: 250,
+                height: 250,
+            },
+            fps: 20,
+        });
+
+        qrSound.addEventListener('canplay', function () {
+            // This event will be triggered when the audio can be played
+            scanner.render(success, error);
+        });
+        // scanner.render(success, error);
+
+        async function success(result) {
+            console.log(typeof (result))
+
+            // Show loading animation
+            document.getElementById('loading-animation').style.display = 'block';
+
+            await qrSound.play();
+            // document.getElementById('result').innerHTML = `
+            //     <h2>Success!</h2>
+            //     <p><a href="${result}">${result}</a></p>
+            // `;
+
+            try {
+                let data = JSON.parse(result);
+                // let url = `http://localhost:3000/verify-user?uid=${data.uid}&email=${data.email}`;
+                let url = `${process.env.API_URL}/verify-user?uid=${data.uid}&email=${data.email}`; //env might not work here, instead copy-paste the actual url
+                fetch(url)
+                    .then(resp => resp.json())
+                    .then((response) => {
+                        console.log(response)
+
+                        // Hide loading animation
+                        document.getElementById('loading-animation').style.display = 'none';
+                        if (response.status === "authorized") {
+                            document.getElementById('result').innerHTML = `
+                            <img src='./approved.png' width='300' height='300'>
+                        `;
+                        } else if(response.status === "entered"){
+                            document.getElementById('result').innerHTML = `
+                            <img src='./entered.jpg' width='300' height='300'>
+                        `;
+                        } else{
+                            document.getElementById('result').innerHTML = `
+                            <img src='./reject.png' width='300' height='300'>
+                        `;
+                        }
+                    })
+                    .catch((err) => {
+                        alert(`Server internal error`)
+                    })
+
+                scanner.clear();
+                document.getElementById('reader').remove();
+                document.getElementById('reloadButton').style.display = 'block';
+            } catch (error) {
+                console.log(`some error occurred in parsing the json`);
+                let data = {};
+                scanner.clear();
+                document.getElementById('loading-animation').style.display = 'none';
+                document.getElementById('result').innerHTML = `
+                            <img src='./reject.png' width='300' height='300'>
+                        `;
+                document.getElementById('reader').remove();
+                document.getElementById('reloadButton').style.display = 'block';
+                return;
+            }
+
+        }
+
+        function error(err) {
+            // console.error(err);
+            console.log("error occured")
+            // document.getElementById('loading-animation').style.display = 'none';
+        }
+
+        document.getElementById('reloadButton').addEventListener('click', function () {
+            location.reload();
+        });
+    </script>
+</body>
+
+</html>

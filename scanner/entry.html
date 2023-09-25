@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #ade7f1;
+        }
+
+        #loading {
+            display: none;
+        }
+
+        #data-table-container {
+            width: 80%;
+            height: 100%;
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 20px;
+        }
+
+        #data-table {
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #data-table th,
+        #data-table td {
+            border-bottom: 1px solid #c7c7c7;
+            padding: 10px;
+            text-align: left;
+        }
+
+        #data-table th {
+            background-color: #000000;
+            color: white;
+        }
+
+        #data-table tbody tr {
+            background-color: #ffffff;
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            /* Light grey */
+            border-top: 5px solid #3498db;
+            /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media screen and (max-width: 600px) {
+            body {
+                padding: 0px 10px;
+            }
+
+            #count {
+                text-align: center;
+            }
+
+            #data-table-container {
+                width: 100%;
+            }
+
+            #data-table th,
+            #data-table td {
+                padding: 6px;
+                font-size: 12px;
+            }
+
+            .loader {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div class="loader"></div>
+        <p>Loading...</p>
+    </div>
+    <div id="data-table-container">
+        <h1 id="count"></h1>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>UID</th>
+                    <th>Name</th>
+                    <th>Batch</th>
+                    <th>Year</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        let firstLoad=true
+        const loadingDiv = document.getElementById('loading');
+        const dataTableContainer = document.getElementById('data-table-container');
+
+        const updateData = () => {
+            if(firstLoad){
+                loadingDiv.style.display = 'block'; // Show loading screen
+                dataTableContainer.style.display = 'none'; // Hide table container
+                firstLoad=false
+            }
+
+
+            // let url = "http://localhost:3000/user-entry";
+            let url = `${process.env.API_URL}/user-entry`; //env might not work here instead copy-paste the actual url
+            fetch(url)
+                .then(resp => resp.json())
+                .then((data) => {
+                    loadingDiv.style.display = 'none'; // Hide loading screen
+                    dataTableContainer.style.display = 'block'; // Show table container
+                    updateTable(data); // Call the function to update the table
+                })
+                .catch((err) => {
+                    console.log(err);
+                    loadingDiv.innerText = 'Error loading data';
+                });
+        }
+
+        const updateTable = (data) => {
+            document.getElementById('count').innerText = `Count : ${data.length}`
+            const tableBody = document.querySelector("#data-table tbody");
+
+            // Clear the existing table rows
+            tableBody.innerHTML = "";
+
+            // Loop through the fetched data and create new rows
+            data.forEach((entry) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${entry.uid}</td>
+                    <td>${entry.name}</td>
+                    <td>${entry.batch}</td>
+                    <td>${entry.year}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        updateData();
+        setInterval(updateData, 1000);
+    </script>
+</body>
+
+</html>
